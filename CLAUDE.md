@@ -20,6 +20,7 @@ The owner is not a developer. Claude makes the changes and handles all Git work.
 - Then hand the files to the owner as in step 6.
 
 ## Rules
+- Never put the owner's real name (or any personal name) in any file, commit message or version. The GitHub username Logan1300 is the only identity to use.
 - Never commit contact lists, reports or backups (real phone numbers). Check `git status` before committing. `sample_contacts.csv` is made-up data and is allowed.
 - Never force-push or delete `version/*` branches.
 - WhatsApp Web selectors are in `SEL` at the top of `content.js`. When the layout changes, ask the owner for a Diagnose report from the extension.

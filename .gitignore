@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────
+# WaveSend – files Git should NEVER track
+# ─────────────────────────────────────────────
+
+# ── Personal data: contact lists, reports, backups ──
+# (These hold other people's phone numbers. Keep them off GitHub.)
+*.csv
+*.xlsx
+*.xls
+*.ods
+*.vcf
+*backup*.json
+*wavesend-backup*
+*report*.csv
+contacts/
+reports/
+backups/
+exports/
+# Allow sample/template files you deliberately create:
+!samples/
+!samples/**
+!sample_contacts.csv
+
+# ── Packaged builds (re-create them when needed) ──
+*.zip
+*.crx
+*.pem
+dist/
+build/
+release/
+
+# ── Secrets ──
+.env
+.env.*
+*.key
+
+# ── Node / tooling (if you ever add tests or a build step) ──
+node_modules/
+npm-debug.log*
+coverage/
+
+# ── Windows / macOS clutter ──
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# ── Editors ──
+.vscode/
+.idea/
+*.swp
+*~

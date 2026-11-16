@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WaveSend – Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="icons/icon32.png">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand"><img src="icons/icon48.png" alt=""><div><b>WaveSend</b><span>Bulk sender for WhatsApp Web</span></div></div>
+  <nav>
+    <button data-view="compose" class="active"><i>✎</i>New campaign</button>
+    <button data-view="live"><i>◉</i>Live progress <em id="navLiveBadge" hidden></em></button>
+    <button data-view="history"><i>↺</i>Reports &amp; replies</button>
+    <button data-view="safety"><i>🛡</i>Safety Shield <em id="navHealth" class="health-badge"></em></button>
+    <button data-view="automation"><i>⚡</i>Auto-reply &amp; tools</button>
+    <button data-view="templates"><i>❏</i>Templates</button>
+    <button data-view="settings"><i>⚙</i>Settings &amp; blocklist</button>
+    <button data-view="help"><i>?</i>Help</button>
+  </nav>
+  <div class="side-foot">
+    <button id="openWa" class="btn ghost-light">Open WhatsApp Web</button>
+    <div class="today">Sent today: <b id="todayCount">0</b> / <span id="todayLimit">–</span></div>
+  </div>
+</aside>
+
+<main>
+  <!-- ============ COMPOSE ============ -->
+  <section class="view" id="view-compose">
+    <header class="page-head">
+      <div><h1>New campaign</h1><p>Import contacts, write your message, add files, then start.</p></div>
+      <div class="head-actions"><button class="btn ghost" id="resetDraft">Clear draft</button></div>
+    </header>
+
+    <div class="card" id="cardContacts">
+      <div class="card-head"><span class="step">1</span><h2>Contacts</h2><span class="hint" id="contactSummary">No contacts yet</span></div>
+      <div class="tabs" data-tabs="src">
+        <button data-tab="file" class="active">Excel / CSV</button>
+        <button data-tab="sheet">Google Sheet</button>
+        <button data-tab="paste">Paste numbers</button>
+        <button data-tab="group">WhatsApp group</button>
+        <button data-tab="chats">My chat list</button>
+      </div>
+      <div class="tab-body" data-body="src:file">
+        <label class="drop" id="dropContacts">
+          <input type="file" id="fileContacts" accept=".csv,.xlsx,.txt,.tsv" hidden>
+          <div class="drop-icon">⇪</div>
+          <div><b>Drop your .xlsx or .csv file here</b> or click to browse</div>
+          <small>First row can be headers (e.g. Name, Phone, City). Every column becomes a variable like <code>{{city}}</code>.</small>
+        </label>
+        <div class="row-links"><a href="#" id="dlSample">Download sample file</a><span id="fileName"></span></div>
+      </div>
+      <div class="tab-body" data-body="src:sheet" hidden>
+        <p class="hint">In Google Sheets click <b>Share → Anyone with the link → Viewer</b>, copy the link and paste it here. The first tab (or the tab in the link) is imported.</p>
+        <div class="inline-row"><input id="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/…"><button class="btn" id="loadSheet">Import sheet</button></div>
+      </div>
+      <div class="tab-body" data-body="src:paste" hidden>
+        <textarea id="pasteNumbers" rows="6" placeholder="One contact per line. Optional name after a comma:&#10;9876543210, Rahul&#10;+44 7700 900123, Emma&#10;919812345678"></textarea>
+        <div class="row-end"><button class="btn" id="usePasted">Use these numbers</button></div>
+      </div>
+      <div class="tab-body" data-body="src:group" hidden>
+        <ol class="mini-steps">
+          <li>Open WhatsApp Web and click the group you want.</li>
+          <li>Wait 2–3 seconds until the member list shows under the group name.</li>
+          <li>Click <b>Grab members</b>. Members saved in your phone show only a name, so only unsaved members come with a number.</li>
+        </ol>
+        <div class="row-end"><button class="btn ghost" id="groupCsv" hidden>Download members CSV</button><button class="btn" id="grabGroup">Grab members</button></div>
+        <div id="groupResult" class="hint"></div>
+      </div>
+      <div class="tab-body" data-body="src:chats" hidden>
+        <p class="hint">Scrolls through your WhatsApp Web chat list and collects every chat whose title is a phone number (people not saved in your phone). Saved contacts appear by name only. Takes up to a minute for long lists.</p>
+        <div class="row-end"><button class="btn ghost" id="chatsCsv" hidden>Download chat list CSV</button><button class="btn" id="grabChats">Read my chat list</button></div>
+        <div id="chatsResult" class="hint"></div>
+      </div>
+
+      <div id="mapping" hidden>
+        <div class="grid4">
+          <label>Phone column<select id="mapPhone"></select></label>
+          <label>Name column<select id="mapName"></select></label>
+          <label>Default country code<input id="mapCC" inputmode="numeric" placeholder="91"></label>
+          <label>First row is headers<select id="mapHeader"><option value="1">Yes</option><option value="0">No</option></select></label>
+        </div>
+        <div class="chips" id="contactStats"></div>
+        <div class="table-wrap"><table id="previewTable"></table></div>
+      </div>
+    </div>
+
+    <div class="card" id="cardMessage">
+      <div class="card-head"><span class="step">2</span><h2>Message</h2><span class="hint">Add 2–5 variations — one is picked at random for each contact.</span></div>
+      <div class="msg-layout">
+        <div class="msg-edit">
+          <div class="variant-tabs" id="variantTabs"></div>
+          <div class="toolbar">
+            <button data-wrap="*" title="Bold"><b>B</b></button>
+            <button data-wrap="_" title="Italic"><i>I</i></button>
+            <button data-wrap="~" title="Strikethrough"><s>S</s></button>
+            <button data-wrap="```" title="Monospace"><code>{ }</code></button>
+            <span class="sep"></span>
+            <button id="emojiBtn" title="Emoji">☺</button>
+            <button id="spinBtn" title="Insert random choice">{a|b}</button>
+            <span class="sep"></span>
+            <div class="var-chips" id="varChips"></div>
+          </div>
+          <div class="emoji-pop" id="emojiPop" hidden></div>
+          <textarea id="msgText" rows="9" placeholder="{{greeting}} {{first_name|there}} 👋&#10;&#10;{Hope you're doing well|Hope your week is going great}! ..."></textarea>
+          <div class="msg-foot">
+            <span id="charCount">0 characters</span>
+            <span class="spacer"></span>
+            <button class="btn ghost small" id="previewAll">Preview all messages</button>
+            <button class="btn ghost small" id="saveTemplate">Save as template</button>
+            <select id="loadTemplate" class="small"><option value="">Load template…</option></select>
+          </div>
+          <div class="risk" id="riskBox"></div>
+          <details class="tips"><summary>Personalisation help</summary>
+            <ul>
+              <li><code>{{name}}</code>, <code>{{first_name}}</code>, <code>{{greeting}}</code> (Good morning/afternoon/evening), <code>{{phone}}</code>, <code>{{date}}</code>, <code>{{day}}</code> and every column of your file.</li>
+              <li><code>{{name|Customer}}</code> uses “Customer” when the name is empty.</li>
+              <li><code>{Hi|Hello|Hey}</code> picks one at random so no two messages are identical.</li>
+              <li>WhatsApp formatting: <code>*bold*</code>, <code>_italic_</code>, <code>~strike~</code>, <code>```mono```</code>.</li>
+            </ul>
+          </details>
+        </div>
+        <div class="phone">
+          <div class="phone-head"><span class="avatar" id="pvAvatar">R</span><div><b id="pvName">Contact</b><small id="pvPhone">+91 …</small></div>
+            <button class="icon-btn" id="pvShuffle" title="Preview another contact">⟳</button></div>
+          <div class="phone-body" id="pvBody"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="cardFiles">
+      <div class="card-head"><span class="step">3</span><h2>Attachments <small>(optional)</small></h2><span class="hint">Images, videos, PDFs, audio or a contact card — each can have its own caption.</span></div>
+      <div class="file-actions">
+        <label class="drop slim" id="dropFiles">
+          <input type="file" id="fileAttach" multiple hidden>
+          <div class="drop-icon">📎</div><div><b>Add files</b> — drop here or click</div>
+        </label>
+        <button class="btn ghost" id="addVcard">👤 Add contact card</button>
+      </div>
+      <ul class="files" id="fileList"></ul>
+      <label class="check"><input type="checkbox" id="optCaption"> Send the text as the caption of the first file (one message instead of two)</label>
+    </div>
+
+    <div class="card" id="cardSend">
+      <div class="card-head"><span class="step">4</span><h2>Sending options</h2><span class="hint" id="estimate"></span></div>
+      <div class="presets" id="presetSeg">
+        <button data-preset="ultra"><b>🛡 Ultra-safe</b><small>45–90 s · 80/day</small></button>
+        <button data-preset="balanced"><b>⚖ Balanced</b><small>25–50 s · 200/day</small></button>
+        <button data-preset="fast"><b>⚡ Fast</b><small>12–25 s · known contacts</small></button>
+        <button data-preset="custom"><b>✎ Custom</b><small>your own numbers</small></button>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>Campaign name<input id="campName" placeholder="e.g. Diwali offer – Nov"></label>
+          <div class="seg" id="modeSeg">
+            <button data-mode="send" class="active">Send messages</button>
+            <button data-mode="validate">Only check numbers</button>
+          </div>
+          <div class="grid2 tight">
+            <label>Delay between messages (sec)<div class="range2"><input type="number" id="dMin" min="5"> – <input type="number" id="dMax" min="5"></div></label>
+            <label>Daily limit<input type="number" id="dLimit" min="0"></label>
+            <label>Break after about … messages<input type="number" id="bSize" min="0"></label>
+            <label>Break length (min)<div class="range2"><input type="number" id="bMin" min="0"> – <input type="number" id="bMax" min="0"></div></label>
+          </div>
+          <div class="safety" id="safety"><span class="meter"><i></i></span><span id="safetyText"></span></div>
+        </div>
+        <div>
+          <label class="check"><input type="checkbox" id="optHours"> Only send between <input type="time" id="hStart"> and <input type="time" id="hEnd"> (your time)</label>
+          <label class="check"><input type="checkbox" id="optShuffle"> Shuffle contact order</label>
+          <label class="check"><input type="checkbox" id="optSkip"> Skip people I messaged in the last <input type="number" id="optSkipDays" class="tiny" min="0"> days (0 = ever)</label>
+          <label class="check"><input type="checkbox" id="optOut"> Add an opt-out line: <input id="optOutText" class="inline"></label>
+          <label class="check">Retry failed numbers <input type="number" id="optRetries" min="0" max="3" class="tiny"> time(s) at the end</label>
+          <div class="schedule">
+            <label class="check"><input type="radio" name="when" value="now" checked> Start now</label>
+            <label class="check"><input type="radio" name="when" value="later"> Schedule for <input type="datetime-local" id="schedAt"></label>
+            <label class="check">Repeat <select id="optRepeat" class="small"><option value="none">never</option><option value="daily">every day</option><option value="weekly">every week</option><option value="monthly">every 30 days</option></select></label>
+          </div>
+          <p class="hint shield-note" id="shieldNote"></p>
+        </div>
+      </div>
+      <div class="start-bar">
+        <div class="test">
+          <input id="testPhone" placeholder="Your number for a test, e.g. 9876543210">
+          <button class="btn ghost" id="sendTest">Send test</button>
+        </div>
+        <span class="spacer"></span>
+        <div class="start-summary" id="startSummary"></div>
+        <button class="btn primary big" id="startBtn">Start campaign</button>
+      </div>
+      <div id="startError" class="error" hidden></div>
+    </div>
+  </section>
+
+  <!-- ============ LIVE ============ -->
+  <section class="view" id="view-live" hidden>
+    <header class="page-head">
+      <div><h1 id="liveTitle">Live progress</h1><p id="liveSub">No campaign running.</p></div>
+      <div class="head-actions">
+        <button class="btn primary" id="btnTrack" hidden>Check replies &amp; read status</button>
+        <button class="btn" id="btnPause">Pause</button>
+        <button class="btn" id="btnResume" hidden>Resume</button>
+        <button class="btn danger" id="btnStop">Stop</button>
+      </div>
+    </header>
+    <div id="liveEmpty" class="empty">Start a campaign from <a href="#" data-goto="compose">New campaign</a> to see it here.</div>
+    <div id="liveBody" hidden>
+      <div class="card">
+        <div class="live-top">
+          <span class="status-pill" id="liveStatus">running</span>
+          <span id="liveNote" class="note"></span>
+          <span class="spacer"></span>
+          <span id="liveNext" class="next"></span>
+        </div>
+        <div class="bigbar"><i id="liveFill"></i></div>
+        <div class="tiles" id="liveTiles"></div>
+        <p class="hint">Keep the WhatsApp Web tab open (it can be in its own window). Your computer must stay awake while sending.</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Contacts</h2>
+          <span class="spacer"></span>
+          <select id="liveFilter" class="small"></select>
+          <button class="btn ghost small" id="liveRetry">Retry failed → new campaign</button>
+          <button class="btn ghost small" id="liveExport">Export report (CSV)</button>
+          <button class="btn ghost small" id="liveClear" hidden>Clear</button>
+        </div>
+        <div class="table-wrap tall"><table id="liveTable"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HISTORY ============ -->
+  <section class="view" id="view-history" hidden>
+    <header class="page-head"><div><h1>Reports &amp; replies</h1><p>Every campaign, who replied, who's interested, and which message variation works best.</p></div></header>
+    <div class="card"><div class="table-wrap"><table id="histTable"></table></div></div>
+    <div class="card" id="insights" hidden></div>
+  </section>
+
+  <!-- ============ SAFETY ============ -->
+  <section class="view" id="view-safety" hidden>
+    <header class="page-head"><div><h1>Safety Shield</h1><p>Everything WaveSend does to keep your number from being restricted.</p></div></header>
+    <div class="grid2">
+      <div class="card">
+        <div class="health">
+          <div class="gauge" id="healthGauge"><b id="healthScore">–</b><span>health</span></div>
+          <div>
+            <h2 id="healthTitle">Account health</h2>
+            <p class="hint" id="healthSub"></p>
+            <div class="mini-tiles" id="healthTiles"></div>
+          </div>
+        </div>
+        <h3>Recommendations</h3>
+        <ul class="recs" id="recs"></ul>
+        <h3>Messages sent – last 14 days</h3>
+        <div class="spark" id="spark"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Protection settings</h2><span class="hint">Apply to every campaign</span></div>
+        <div class="shield-list">
+          <label class="check"><input type="checkbox" id="shTyping"> <span><b>Human-like typing</b><small>Types the message in word chunks with natural pauses (recipient sees “typing…”), instead of pasting instantly.</small></span></label>
+          <label class="check"><input type="checkbox" id="shPauses"> <span><b>Natural breaks</b><small>Occasional random 1–4 min pauses, delays clustered like a person's, batch sizes that vary ±30%.</small></span></label>
+          <label class="check"><span><b>Hourly limit</b><small>Never more than this many messages in one clock hour (0 = off).</small></span><input type="number" id="shHourly" class="tiny" min="0"></label>
+          <label class="check"><input type="checkbox" id="shWarm"> <span><b>New-number warm-up</b><small>Ramps the daily limit: 20 → 35 → 60 → 100 → 150 over 30 days. Number started on <input type="date" id="shWarmStart">. <em id="warmInfo"></em></small></span></label>
+          <label class="check"><input type="checkbox" id="shLocal"> <span><b>Respect recipients' local time</b><small>Uses the country code to only message people between <input type="time" id="shLocalStart"> and <input type="time" id="shLocalEnd"> in <i>their</i> time zone. Others wait in the queue.</small></span></label>
+          <label class="check"><input type="checkbox" id="shOptOut"> <span><b>Respect opt-outs automatically</b><small>Before sending, reads the chat; if they ever replied with one of these words they're skipped and blocklisted:</small><textarea id="shOptWords" rows="2"></textarea></span></label>
+          <label class="check"><input type="checkbox" id="shInvalid"> <span><b>Remember numbers not on WhatsApp</b><small>Never opens them again (opening many invalid chats is a ban signal). <span id="invalidCount">0</span> remembered. <a href="#" id="clearInvalid">Forget</a></small></span></label>
+          <label class="check"><span><b>Auto-pause guards</b><small>Pause after <input type="number" id="shFails" class="tiny" min="1"> failures in a row, or when more than <input type="number" id="shInvRate" class="tiny" min="5" max="100">% of numbers aren't on WhatsApp. Always stops instantly if WhatsApp shows a warning or ban screen.</small></span></label>
+        </div>
+        <div class="row-end"><button class="btn primary" id="saveShield">Save protection settings</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ AUTOMATION ============ -->
+  <section class="view" id="view-automation" hidden>
+    <header class="page-head"><div><h1>Auto-reply &amp; tools</h1><p>Answer common questions automatically and work faster inside WhatsApp Web.</p></div></header>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head"><h2>Auto-reply bot <small>(beta)</small></h2><span class="hint" id="arStats"></span></div>
+        <label class="check"><input type="checkbox" id="arOn"> <b>Turn on auto-reply</b></label>
+        <p class="hint">Works while WhatsApp Web is open and you haven't touched it for <input type="number" id="arIdle" class="tiny" min="10"> seconds. It opens unread chats (which marks them read), checks the last message and answers if a rule matches. It never runs during a campaign and never touches a half-written draft.</p>
+        <div id="arRules"></div>
+        <button class="btn ghost small" id="arAdd">+ Add rule</button>
+        <label>Reply to anything else (optional, once per chat every <input type="number" id="arCool" class="tiny" min="1"> h)<textarea id="arDefault" rows="2" placeholder="e.g. Thanks for your message! We'll get back to you shortly."></textarea></label>
+        <label>Reply when someone says STOP (optional)<textarea id="arOptReply" rows="2" placeholder="e.g. You won't receive further messages from us. Sorry for the trouble."></textarea></label>
+        <label class="check"><input type="checkbox" id="arGroups"> Ignore group chats</label>
+        <div class="row-end"><button class="btn primary" id="arSave">Save auto-reply</button></div>
+      </div>
+      <div class="card prose">
+        <h2>Tools inside WhatsApp Web</h2>
+        <p>A small WaveSend bar sits in the bottom-left corner of WhatsApp Web:</p>
+        <ul>
+          <li><b>⚡ Quick replies</b> – insert any saved template into the open chat, with <code>{{name}}</code> filled from the chat name.</li>
+          <li><b>👁 Privacy blur</b> – blurs names, photos and messages until you hover. Handy in offices and on screen-shares.</li>
+          <li><b>Live progress</b> – current campaign, countdown, pause/resume.</li>
+        </ul>
+        <label class="check"><input type="checkbox" id="toolBlur"> Privacy blur is on</label>
+        <h2>Exports</h2>
+        <ul>
+          <li>Group members → <a href="#" data-goto-tab="group">New campaign › WhatsApp group</a></li>
+          <li>Unsaved numbers from your chat list → <a href="#" data-goto-tab="chats">New campaign › My chat list</a></li>
+          <li>Any report, replies and interested leads → <a href="#" data-goto="history">Reports &amp; replies</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TEMPLATES ============ -->
+  <section class="view" id="view-templates" hidden>
+    <header class="page-head"><div><h1>Templates</h1><p>Saved messages – load them into a campaign or insert them in WhatsApp Web with ⚡ Quick replies.</p></div></header>
+    <div id="tplList" class="tpl-grid"></div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section class="view" id="view-settings" hidden>
+    <header class="page-head"><div><h1>Settings &amp; blocklist</h1><p>Defaults for new campaigns and numbers you never want to message.</p></div></header>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head"><h2>Defaults</h2></div>
+        <div class="grid2 tight">
+          <label>Default country code<input id="sCC" inputmode="numeric"></label>
+          <label>Local number length<input id="sLen" type="number" min="6" max="12"></label>
+          <label>How to open each chat<select id="sOpen"><option value="fast">Fast – inside WhatsApp Web, no reload</option><option value="reload">Classic – reload WhatsApp for each number</option></select></label>
+        </div>
+        <p class="hint">A 10-digit number like 98765 43210 becomes +91 98765 43210. Numbers starting with + or 00 are kept as they are. Pacing defaults come from the preset you pick in step 4.</p>
+        <div class="row-end"><button class="btn primary" id="saveSettings">Save defaults</button></div>
+        <hr>
+        <div class="card-head"><h2>Backup</h2></div>
+        <p class="hint">Download templates, blocklist, settings and reports as one file, or restore them on another computer.</p>
+        <div class="row-end"><label class="btn ghost">Restore backup<input type="file" id="restoreFile" accept=".json" hidden></label><button class="btn ghost" id="backupBtn">Download backup</button></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Blocklist (do not message)</h2><span class="hint" id="blockCount"></span></div>
+        <textarea id="blocklist" rows="9" placeholder="One number per line"></textarea>
+        <p class="hint">People who reply STOP are added automatically. Blocked numbers are removed when you import contacts and skipped during sending.</p>
+        <div class="row-end"><button class="btn primary" id="saveBlock">Save blocklist</button></div>
+        <hr>
+        <div class="card-head"><h2>Sent history</h2></div>
+        <p class="hint"><span id="sentLogCount">0</span> numbers remembered for “skip people I messaged recently”.</p>
+        <div class="row-end"><button class="btn ghost" id="clearSentLog">Forget sent history</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HELP ============ -->
+  <section class="view" id="view-help" hidden>
+    <header class="page-head"><div><h1>Help</h1><p>How WaveSend works and how to keep your number safe.</p></div></header>
+    <div class="grid2">
+      <div class="card prose">
+        <h2>Quick start</h2>
+        <ol>
+          <li>Open <b>WhatsApp Web</b> in Chrome and scan the QR code once.</li>
+          <li>In <b>New campaign</b>, upload your Excel/CSV, a Google Sheet link, or paste numbers.</li>
+          <li>Write 2–3 variations using <code>{{name}}</code>. Keep the risk meter green.</li>
+          <li>Add files if needed, send a <b>test</b> to your own number, then <b>Start</b>.</li>
+          <li>A day later, open <b>Reports &amp; replies</b> and click <b>Check replies</b> to see who read, replied, is interested or wants to stop – then send a follow-up to the right group.</li>
+        </ol>
+        <h2>Something not working?</h2>
+        <p>Open WhatsApp Web, open any chat (e.g. your own number), then click <b>Diagnose</b>. It checks every part of WhatsApp Web that WaveSend uses and gives you a report you can copy and share for a quick fix. Nothing is sent and no messages are read.</p>
+        <p><button class="btn primary" id="diagBtn">Diagnose WhatsApp Web</button></p>
+        <h2>Troubleshooting</h2>
+        <ul>
+          <li><b>Paused – not logged in:</b> scan the QR code in WhatsApp Web, then Resume.</li>
+          <li><b>“Use here” popup:</b> WhatsApp is open in another window or the desktop app. Click “Use here”, then Resume.</li>
+          <li><b>Many “failed”:</b> keep the WhatsApp tab visible (its own window works), reload it, then Resume.</li>
+          <li><b>After updating the extension:</b> reload the WhatsApp Web tab.</li>
+        </ul>
+      </div>
+      <div class="card prose">
+        <h2>Why numbers get banned</h2>
+        <p>WhatsApp restricts numbers mainly when <b>recipients block or report</b> them, and when activity looks automated: identical messages, very fast sending, many chats with numbers that aren't on WhatsApp, and a sudden jump in volume on a new number. No tool can make bulk messaging risk-free; the Safety Shield handles the automated-looking parts, and you control who you message.</p>
+        <ul>
+          <li><b>Message people who know you</b> or asked to hear from you.</li>
+          <li><b>Warm up new numbers</b> and keep the daily limit modest.</li>
+          <li><b>Personalise and vary</b> every message; avoid links and salesy words in the first message.</li>
+          <li><b>Let people opt out</b> and honour it (automatic in WaveSend).</li>
+          <li><b>Watch your health score</b> in Safety Shield and follow its recommendations.</li>
+          <li>For very large marketing volumes, use the official <b>WhatsApp Business Platform</b>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="modal-back" id="modal" hidden><div class="modal-card"><div class="modal-head"><h2 id="modalTitle"></h2><span class="spacer"></span><button class="btn ghost small" id="modalExtra" hidden></button><button class="btn small" id="modalClose">Close</button></div><div id="modalBody"></div></div></div>
+<div class="toast" id="toast" hidden></div>
+<script type="module" src="dashboard.js"></script>
+</body>
+</html>

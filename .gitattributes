@@ -1,0 +1,13 @@
+# Keep line endings consistent on Windows and everywhere else
+* text=auto eol=lf
+
+# Binary files – never touch
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.zip  binary

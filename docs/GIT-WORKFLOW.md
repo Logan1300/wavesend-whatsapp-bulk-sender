@@ -24,15 +24,24 @@ Start with what kind of change it is:
 ## Releasing a new version
 1. Bump `"version"` in `manifest.json` (e.g. `2.1.1` → `2.1.2`).
 2. Add an entry at the top of `CHANGELOG.md`.
-3. Commit and tag it:
+3. Commit, push, and save a version snapshot as a branch:
    ```bash
    git add .
    git commit -m "Release: v2.1.2"
-   git tag v2.1.2
    git push
-   git push --tags
+   git push origin main:refs/heads/version/v2.1.2
    ```
-4. Optional: on GitHub go to **Releases → Draft a new release**, pick the tag, and attach a `.zip` of the folder.
+   Each `version/…` branch is a frozen copy of that release. **Never delete them.**
+4. Optional: on GitHub go to **Releases → Draft a new release** to create a tag and attach a `.zip` of the folder.
+
+## Going back to a working version
+```bash
+git fetch origin version/v2.1.1
+git checkout FETCH_HEAD -- .
+git commit -m "Revert to v2.1.1"
+git push
+```
+This puts the old files back as a new commit, so nothing in the history is lost. Or just ask Claude: *"go back to v2.1.1"*.
 
 ## Trying something risky (branches)
 ```bash
@@ -49,7 +58,7 @@ git push -u origin experiment/new-attach-flow
 | Undo edits to one file (not committed yet) | `git restore content.js` |
 | Unstage a file you added by mistake | `git restore --staged contacts.csv` |
 | Fix the last commit message | `git commit --amend -m "Better message"` |
-| Go back to how things were at v2.1.1 (just to look) | `git switch --detach v2.1.1`, then `git switch main` to return |
+| Look at how things were at v2.1.1 | `git switch --detach origin/version/v2.1.1`, then `git switch main` to return |
 | See history | `git log --oneline` |
 
 ## If you accidentally pushed a contact list
